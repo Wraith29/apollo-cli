@@ -23,6 +23,7 @@ pub fn init(allocator: Allocator, base_url: []const u8) Self {
 pub fn deinit(self: *Self) void {
     self.client.deinit();
 }
+
 fn post(
     self: *Self,
     comptime TRequest: type,
@@ -61,17 +62,11 @@ fn post(
 const AuthRequest = struct { username: []const u8, password: []const u8 };
 const AuthResponse = struct { authToken: []const u8 };
 
-pub fn login(self: *Self, username: []const u8, password: []const u8) !*AuthResponse {
-    const response = try self.post(
+pub fn login(self: *Self, username: []const u8, password: []const u8) !json.Parsed(AuthResponse) {
+    return self.post(
         AuthRequest,
         AuthResponse,
         "auth/login",
         .{ .username = username, .password = password },
     );
-    defer response.deinit();
-
-    const result = try self.allocator.create(AuthResponse);
-    @memcpy(result, response.value);
-
-    return result;
 }
