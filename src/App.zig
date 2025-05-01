@@ -66,10 +66,18 @@ fn login(self: *Self) !void {
     defer self.allocator.free(password);
 
     const response = try self.client.login(username, password);
-    defer response.deinit();
+    defer response.destroy(self.allocator);
 
-    const auth_token = try self.allocator.alloc(u8, response.value.authToken.len);
-    @memcpy(auth_token, response.value.authToken);
+    if (response.status != .ok) {
+        // handle this
+        return error.InvalidUsernameOrPassword;
+    }
+
+    const body = try response.into(Client.Auth.Response, self.allocator);
+    defer body.deinit();
+
+    const auth_token = try self.allocator.alloc(u8, body.value.authToken.len);
+    @memcpy(auth_token, body.value.authToken);
 
     if (self.config.auth_token) |old_token|
         self.allocator.free(old_token);
