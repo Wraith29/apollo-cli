@@ -52,11 +52,12 @@ pub fn run(self: *Self) !void {
     const cmd = self.args.next() orelse return Error.NoCommand;
 
     if (std.mem.eql(u8, cmd, "login"))
-        return self.login();
+        return self.authenticate(true)
+    else if (std.mem.eql(u8, cmd, "register"))
+        return self.authenticate(false);
 }
 
-// Login sets the AuthToken in the config to the returned auth token, assuming a valid response
-fn login(self: *Self) !void {
+fn authenticate(self: *Self, is_login: bool) !void {
     try self.console.write("Username: ");
     const username = try self.console.readLine(16);
     defer self.allocator.free(username);
@@ -65,12 +66,19 @@ fn login(self: *Self) !void {
     const password = try self.console.readPassword(32);
     defer self.allocator.free(password);
 
-    const response = try self.client.login(username, password);
+    const response = if (is_login)
+        try self.client.login(username, password)
+    else
+        try self.client.register(username, password);
     defer response.destroy(self.allocator);
 
     if (response.status != .ok) {
-        // handle this
-        return error.InvalidUsernameOrPassword;
+        if (!is_login and response.status == .conflict)
+            return error.UsernameTaken
+        else if (is_login and response.status == .unauthorized)
+            return error.InvalidUsernameOrPassword
+        else
+            return error.InvalidStatusCode;
     }
 
     const body = try response.into(Client.Auth.Response, self.allocator);

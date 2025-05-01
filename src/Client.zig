@@ -94,6 +94,7 @@ pub const Auth = struct {
     pub const Response = struct { authToken: []const u8 };
 
     pub const Error = error{
+        UsernameTaken,
         InvalidUsernameOrPassword,
         InvalidStatusCode,
     };
@@ -101,4 +102,8 @@ pub const Auth = struct {
 
 pub fn login(self: *Self, username: []const u8, password: []const u8) !*Response {
     return self.post(Auth.Request, "auth/login", .{ .username = username, .password = password });
+}
+
+pub fn register(self: *Self, username: []const u8, password: []const u8) !*Response {
+    return self.post(Auth.Request, "auth/register", .{ .username = username, .password = password });
 }
