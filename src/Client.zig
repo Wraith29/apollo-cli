@@ -2,6 +2,7 @@ const std = @import("std");
 const http = std.http;
 const json = std.json;
 const mem = std.mem;
+const Config = @import("Config.zig");
 
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
@@ -10,12 +11,14 @@ const Self = @This();
 
 allocator: Allocator,
 base_url: []const u8,
+auth_token: ?[]const u8 = null,
 client: http.Client,
 
-pub fn init(allocator: Allocator, base_url: []const u8) Self {
+pub fn init(allocator: Allocator, config: *const Config) Self {
     return Self{
         .allocator = allocator,
-        .base_url = base_url,
+        .base_url = config.base_url,
+        .auth_token = config.auth_token,
         .client = http.Client{ .allocator = allocator },
     };
 }
@@ -66,6 +69,7 @@ fn post(
     comptime TRequest: type,
     endpoint: []const u8,
     body: TRequest,
+    headers: []const http.Header,
 ) !*Response {
     const payload = try json.stringifyAlloc(self.allocator, body, .{});
     defer self.allocator.free(payload);
@@ -81,6 +85,7 @@ fn post(
         .location = .{ .url = url },
         .payload = payload,
         .headers = .{ .content_type = .{ .override = "application/json" } },
+        .extra_headers = headers,
         .response_storage = .{ .dynamic = &response.body },
     });
 
@@ -101,9 +106,26 @@ pub const Auth = struct {
 };
 
 pub fn login(self: *Self, username: []const u8, password: []const u8) !*Response {
-    return self.post(Auth.Request, "auth/login", .{ .username = username, .password = password });
+    return self.post(Auth.Request, "auth/login", .{ .username = username, .password = password }, &.{});
 }
 
 pub fn register(self: *Self, username: []const u8, password: []const u8) !*Response {
-    return self.post(Auth.Request, "auth/register", .{ .username = username, .password = password });
+    return self.post(Auth.Request, "auth/register", .{ .username = username, .password = password }, &.{});
+}
+
+pub fn addArtist(self: *Self, artist_name: []const u8) !*Response {
+    if (self.auth_token == null)
+        return error.NotLoggedIn;
+
+    return self.post(
+        struct { artistName: []const u8 },
+        "artist",
+        .{ .artistName = artist_name },
+        &.{
+            .{
+                .name = "Authorization",
+                .value = self.auth_token.?,
+            },
+        },
+    );
 }

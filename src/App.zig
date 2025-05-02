@@ -21,7 +21,7 @@ console: Console,
 pub fn init(allocator: Allocator) !Self {
     const config = try Config.load(allocator);
 
-    var client = Client.init(allocator, config.base_url);
+    var client = Client.init(allocator, &config);
     errdefer client.deinit();
 
     const console = Console.init(allocator);
@@ -54,7 +54,9 @@ pub fn run(self: *Self) !void {
     if (std.mem.eql(u8, cmd, "login"))
         return self.authenticate(true)
     else if (std.mem.eql(u8, cmd, "register"))
-        return self.authenticate(false);
+        return self.authenticate(false)
+    else if (std.mem.eql(u8, cmd, "add"))
+        return self.addArtist();
 }
 
 fn authenticate(self: *Self, is_login: bool) !void {
@@ -91,4 +93,17 @@ fn authenticate(self: *Self, is_login: bool) !void {
         self.allocator.free(old_token);
 
     self.config.auth_token = auth_token;
+}
+
+fn addArtist(self: *Self) !void {
+    const artist_name = self.args.next() orelse return error.MissingRequiredPositionalArg;
+
+    const response = try self.client.addArtist(artist_name);
+    defer response.destroy(self.allocator);
+
+    if (response.status != .ok) {
+        return error.AddArtistFailed;
+    }
+
+    std.log.info("{any}", .{response});
 }
