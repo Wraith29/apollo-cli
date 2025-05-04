@@ -27,10 +27,6 @@ pub fn deinit(self: *Self) void {
     self.client.deinit();
 }
 
-fn buildUrl(self: *const Self, endpoint: []const u8) ![]const u8 {
-    return mem.concat(self.allocator, u8, &.{ self.base_url, endpoint });
-}
-
 const Response = struct {
     status: http.Status = undefined,
     body: ArrayList(u8),
@@ -94,15 +90,38 @@ fn post(
     return response;
 }
 
+fn get(
+    self: *Self,
+    endpoint: []const u8,
+    headers: []const http.Header,
+) !*Response {
+    const url = try mem.concat(self.allocator, u8, &.{ self.base_url, endpoint });
+    defer self.allocator.free(url);
+
+    const response = try Response.create(self.allocator);
+    errdefer response.destroy(self.allocator);
+
+    const fetch_result = try self.client.fetch(.{
+        .method = .GET,
+        .location = .{ .url = url },
+        .extra_headers = headers,
+        .response_storage = .{ .dynamic = &response.body },
+    });
+
+    response.status = fetch_result.status;
+
+    return response;
+}
+
+const Error = error{
+    UsernameTaken,
+    InvalidUsernameOrPassword,
+    InvalidStatusCode,
+};
+
 pub const Auth = struct {
     const Request = struct { username: []const u8, password: []const u8 };
     pub const Response = struct { authToken: []const u8 };
-
-    pub const Error = error{
-        UsernameTaken,
-        InvalidUsernameOrPassword,
-        InvalidStatusCode,
-    };
 };
 
 pub fn login(self: *Self, username: []const u8, password: []const u8) !*Response {
@@ -122,10 +141,16 @@ pub fn addArtist(self: *Self, artist_name: []const u8) !*Response {
         "artist",
         .{ .artistName = artist_name },
         &.{
-            .{
-                .name = "Authorization",
-                .value = self.auth_token.?,
-            },
+            .{ .name = "Authorization", .value = self.auth_token.? },
         },
     );
+}
+
+pub fn getRecommendation(self: *Self) !*Response {
+    if (self.auth_token == null)
+        return error.NotLoggedIn;
+
+    return self.get("album/recommendation", &.{
+        .{ .name = "Authorization", .value = self.auth_token.? },
+    });
 }

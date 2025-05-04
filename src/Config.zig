@@ -10,6 +10,7 @@ const cfg_max_size = 1024;
 
 base_url: []const u8 = "http://localhost:1300/",
 auth_token: ?[]const u8 = null,
+latest_recommendation: ?[]const u8 = null,
 
 fn getConfigFile(allocator: Allocator, read_only: bool) !File {
     const cfg_path = try files.getFilePath(allocator, cfg_file_name);
@@ -30,8 +31,12 @@ pub fn load(allocator: Allocator) !Self {
 
 pub fn deinit(self: *Self, allocator: Allocator) void {
     allocator.free(self.base_url);
+
     if (self.auth_token) |tkn|
         allocator.free(tkn);
+
+    if (self.latest_recommendation) |rec|
+        allocator.free(rec);
 }
 
 pub fn save(self: *Self, allocator: Allocator) !void {
@@ -39,4 +44,18 @@ pub fn save(self: *Self, allocator: Allocator) !void {
     defer config_file.close();
 
     try std.zon.stringify.serialize(self, .{}, config_file.writer());
+}
+
+pub fn updateAuthToken(self: *Self, allocator: Allocator, auth_token: []const u8) void {
+    if (self.auth_token) |old_token|
+        allocator.free(old_token);
+
+    self.auth_token = auth_token;
+}
+
+pub fn updateLatestRecommendation(self: *Self, allocator: Allocator, recommendation_id: []const u8) void {
+    if (self.latest_recommendation) |latest_rec|
+        allocator.free(latest_rec);
+
+    self.latest_recommendation = recommendation_id;
 }

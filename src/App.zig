@@ -56,7 +56,9 @@ pub fn run(self: *Self) !void {
     else if (std.mem.eql(u8, cmd, "register"))
         return self.authenticate(false)
     else if (std.mem.eql(u8, cmd, "add"))
-        return self.addArtist();
+        return self.addArtist()
+    else if (std.mem.eql(u8, cmd, "recommend") or std.mem.eql(u8, cmd, "rec"))
+        return self.getRecommendation();
 }
 
 fn authenticate(self: *Self, is_login: bool) !void {
@@ -89,10 +91,7 @@ fn authenticate(self: *Self, is_login: bool) !void {
     const auth_token = try self.allocator.alloc(u8, body.value.authToken.len);
     @memcpy(auth_token, body.value.authToken);
 
-    if (self.config.auth_token) |old_token|
-        self.allocator.free(old_token);
-
-    self.config.auth_token = auth_token;
+    self.config.updateAuthToken(self.allocator, auth_token);
 }
 
 fn addArtist(self: *Self) !void {
@@ -104,6 +103,32 @@ fn addArtist(self: *Self) !void {
     if (response.status != .ok) {
         return error.AddArtistFailed;
     }
+}
 
-    std.log.info("{any}", .{response});
+fn getRecommendation(self: *Self) !void {
+    const response = try self.client.getRecommendation();
+    defer response.destroy(self.allocator);
+
+    return switch (response.status) {
+        .ok => {
+            const recommendation = try response.into(struct { albumId: []const u8, albumName: []const u8, artistName: []const u8 }, self.allocator);
+            defer recommendation.deinit();
+
+            try self.console.writeFmt("Recommended Album: {s} by {s}\n", .{ recommendation.value.albumName, recommendation.value.artistName });
+
+            const rec_id = try self.allocator.alloc(u8, recommendation.value.albumId.len);
+            @memcpy(rec_id, recommendation.value.albumId);
+
+            self.config.updateLatestRecommendation(self.allocator, rec_id);
+            try self.config.save(self.allocator);
+        },
+        .bad_request => {
+            std.log.err("No Albums Found", .{});
+        },
+        else => return error.RecommendationFailed,
+    };
+}
+
+fn rateRecommendation(self: *Self) !void {
+    _ = self;
 }

@@ -34,6 +34,18 @@ pub fn write(self: *Self, line: []const u8) !void {
     try self.stdout.writeAll(line);
 }
 
+pub fn writeFmt(self: *Self, comptime fmt: []const u8, args: anytype) !void {
+    var output = std.ArrayList(u8).init(self.allocator);
+    errdefer output.deinit();
+
+    try std.fmt.format(output.writer(), fmt, args);
+
+    const line = try output.toOwnedSlice();
+    defer self.allocator.free(line);
+
+    try self.write(line);
+}
+
 pub fn readLine(self: *Self, comptime len: comptime_int) ![]const u8 {
     const response = try self.stdin.reader().readUntilDelimiterAlloc(self.allocator, '\n', len);
 
