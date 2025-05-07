@@ -3,14 +3,13 @@ const Allocator = std.mem.Allocator;
 
 const Args = @import("Args.zig");
 const Client = @import("Client.zig");
+const artist = @import("commands/artist.zig");
+const auth = @import("commands/auth.zig");
+const recommendation = @import("commands/recommendation.zig");
 const Config = @import("Config.zig");
 const Console = @import("Console.zig");
 
 const Self = @This();
-
-const Error = error{
-    NoCommand,
-};
 
 allocator: Allocator,
 args: Args,
@@ -49,86 +48,12 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn run(self: *Self) !void {
-    const cmd = self.args.next() orelse return Error.NoCommand;
-
-    if (std.mem.eql(u8, cmd, "login"))
-        return self.authenticate(true)
-    else if (std.mem.eql(u8, cmd, "register"))
-        return self.authenticate(false)
-    else if (std.mem.eql(u8, cmd, "add"))
-        return self.addArtist()
-    else if (std.mem.eql(u8, cmd, "recommend") or std.mem.eql(u8, cmd, "rec"))
-        return self.getRecommendation();
-}
-
-fn authenticate(self: *Self, is_login: bool) !void {
-    try self.console.write("Username: ");
-    const username = try self.console.readLine(16);
-    defer self.allocator.free(username);
-
-    try self.console.write("Password: ");
-    const password = try self.console.readPassword(32);
-    defer self.allocator.free(password);
-
-    const response = if (is_login)
-        try self.client.login(username, password)
-    else
-        try self.client.register(username, password);
-    defer response.destroy(self.allocator);
-
-    if (response.status != .ok) {
-        if (!is_login and response.status == .conflict)
-            return error.UsernameTaken
-        else if (is_login and response.status == .unauthorized)
-            return error.InvalidUsernameOrPassword
-        else
-            return error.InvalidStatusCode;
-    }
-
-    const body = try response.into(Client.Auth.Response, self.allocator);
-    defer body.deinit();
-
-    const auth_token = try self.allocator.alloc(u8, body.value.authToken.len);
-    @memcpy(auth_token, body.value.authToken);
-
-    self.config.updateAuthToken(self.allocator, auth_token);
-}
-
-fn addArtist(self: *Self) !void {
-    const artist_name = self.args.next() orelse return error.MissingRequiredPositionalArg;
-
-    const response = try self.client.addArtist(artist_name);
-    defer response.destroy(self.allocator);
-
-    if (response.status != .ok) {
-        return error.AddArtistFailed;
-    }
-}
-
-fn getRecommendation(self: *Self) !void {
-    const response = try self.client.getRecommendation();
-    defer response.destroy(self.allocator);
-
-    return switch (response.status) {
-        .ok => {
-            const recommendation = try response.into(struct { albumId: []const u8, albumName: []const u8, artistName: []const u8 }, self.allocator);
-            defer recommendation.deinit();
-
-            try self.console.writeFmt("Recommended Album: {s} by {s}\n", .{ recommendation.value.albumName, recommendation.value.artistName });
-
-            const rec_id = try self.allocator.alloc(u8, recommendation.value.albumId.len);
-            @memcpy(rec_id, recommendation.value.albumId);
-
-            self.config.updateLatestRecommendation(self.allocator, rec_id);
-            try self.config.save(self.allocator);
-        },
-        .bad_request => {
-            std.log.err("No Albums Found", .{});
-        },
-        else => return error.RecommendationFailed,
-    };
-}
-
-fn rateRecommendation(self: *Self) !void {
-    _ = self;
+    if (try self.args.matches(1, "login", &.{"l"}))
+        return auth.login(self.allocator, &self.client, &self.config, &self.console)
+    else if (try self.args.matches(1, "register", &.{"r"}))
+        return auth.register(self.allocator, &self.client, &self.config, &self.console)
+    else if (try self.args.matches(1, "add", &.{}))
+        return artist.add(self.allocator, &self.args, &self.client)
+    else if (try self.args.matches(1, "recommend", &.{"rec"}))
+        return recommendation.get(self.allocator, &self.client, &self.config, &self.console);
 }

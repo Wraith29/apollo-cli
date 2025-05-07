@@ -42,3 +42,20 @@ pub fn named(self: *const Self, name: []const u8) ?[]const u8 {
 
     return null;
 }
+
+pub fn matches(self: *Self, position: usize, name: []const u8, aliases: []const []const u8) !bool {
+    if (position >= self.args.len)
+        return error.NoCommand;
+
+    const cmd = self.args[position];
+
+    if (std.mem.eql(u8, cmd, name))
+        return true;
+
+    for (aliases) |alias| {
+        if (std.mem.eql(u8, cmd, alias))
+            return true;
+    }
+
+    return false;
+}

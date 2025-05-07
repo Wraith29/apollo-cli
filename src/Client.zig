@@ -58,6 +58,10 @@ const Response = struct {
 
         return std.json.parseFromSlice(T, allocator, response_body, .{ .allocate = .alloc_always });
     }
+
+    pub fn read(self: *Response) ![]const u8 {
+        return self.body.toOwnedSlice();
+    }
 };
 
 fn post(
