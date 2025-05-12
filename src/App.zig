@@ -48,12 +48,41 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn run(self: *Self) !void {
-    if (try self.args.matches(1, "login", &.{"l"}))
+    if (self.args.len == 1) {
+        return self.help();
+    }
+
+    if (try self.args.matches(1, "login", &.{}))
         return auth.login(self.allocator, &self.client, &self.config, &self.console)
-    else if (try self.args.matches(1, "register", &.{"r"}))
+    else if (try self.args.matches(1, "register", &.{}))
         return auth.register(self.allocator, &self.client, &self.config, &self.console)
     else if (try self.args.matches(1, "add", &.{}))
         return artist.add(self.allocator, &self.args, &self.client)
     else if (try self.args.matches(1, "recommend", &.{"rec"}))
         return recommendation.get(self.allocator, &self.client, &self.config, &self.console);
+}
+
+fn help(self: *Self) !void {
+    return self.console.write(
+        \\Apollo
+        \\------
+        \\
+        \\Commands:
+        \\  login
+        \\    Sign in to an existing Apollo account.
+        \\    Prompts for your Username & Password
+        \\
+        \\  register
+        \\    Create a new Apollo account.
+        \\    Prompts for your Username & Password
+        \\
+        \\  add [artist]
+        \\    Adds the given artist to your personal library
+        \\
+        \\  recommend (rec) [-a --all] [...genres]
+        \\    Recommend an album from your library to listen to
+        \\    [-a --all] Include albums you've already been recommended
+        \\    [...genres] Filter down to albums that have the given tags (max 3)
+        \\
+    );
 }

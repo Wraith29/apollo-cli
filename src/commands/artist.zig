@@ -4,7 +4,7 @@ const Args = @import("../Args.zig");
 const Client = @import("../Client.zig");
 
 pub fn add(allocator: Allocator, args: *Args, client: *Client) !void {
-    const artist_name = args.next() orelse return error.MissingRequiredPositionalArg;
+    const artist_name = args.at(2) orelse return error.MissingRequiredPositionalArg;
 
     const response = try client.addArtist(artist_name);
     defer response.destroy(allocator);

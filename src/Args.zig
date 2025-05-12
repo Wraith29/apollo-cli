@@ -6,12 +6,13 @@ const Allocator = std.mem.Allocator;
 const Self = @This();
 
 args: []const [:0]u8,
+len: usize,
 index: usize,
 
 pub fn init(allocator: Allocator) !Self {
     const args = try process.argsAlloc(allocator);
 
-    return .{ .args = args, .index = 0 };
+    return .{ .args = args, .len = args.len, .index = 0 };
 }
 
 pub fn deinit(self: *Self, allocator: Allocator) void {
@@ -28,6 +29,12 @@ pub fn next(self: *Self) ?[]const u8 {
 
     defer self.index += 1;
     return self.args[self.index];
+}
+
+pub fn at(self: *const Self, pos: usize) ?[]const u8 {
+    if (pos >= self.args.len) return null;
+
+    return self.args[pos];
 }
 
 pub fn named(self: *const Self, name: []const u8) ?[]const u8 {
