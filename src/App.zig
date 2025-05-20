@@ -6,6 +6,7 @@ const Client = @import("Client.zig");
 const artist = @import("commands/artist.zig");
 const auth = @import("commands/auth.zig");
 const recommendation = @import("commands/recommendation.zig");
+const rate = @import("commands/rate.zig");
 const Config = @import("Config.zig");
 const Console = @import("Console.zig");
 
@@ -59,7 +60,9 @@ pub fn run(self: *Self) !void {
     else if (try self.args.matches(1, "add", &.{}))
         return artist.add(self.allocator, &self.args, &self.client)
     else if (try self.args.matches(1, "recommend", &.{"rec"}))
-        return recommendation.get(self.allocator, &self.client, &self.config, &self.console);
+        return recommendation.get(self.allocator, &self.client, &self.config, &self.console)
+    else if (try self.args.matches(1, "rate", &.{}))
+        return rate.latest(self.allocator, &self.args, &self.client, &self.config, &self.console);
 }
 
 fn help(self: *Self) !void {

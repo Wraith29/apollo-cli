@@ -64,9 +64,10 @@ const Response = struct {
     }
 };
 
-fn post(
+fn requestWithBody(
     self: *Self,
     comptime TRequest: type,
+    method: http.Method,
     endpoint: []const u8,
     body: TRequest,
     headers: []const http.Header,
@@ -81,7 +82,7 @@ fn post(
     errdefer response.destroy(self.allocator);
 
     const fetch_result = try self.client.fetch(.{
-        .method = .POST,
+        .method = method,
         .location = .{ .url = url },
         .payload = payload,
         .headers = .{ .content_type = .{ .override = "application/json" } },
@@ -92,6 +93,26 @@ fn post(
     response.status = fetch_result.status;
 
     return response;
+}
+
+fn post(
+    self: *Self,
+    comptime TRequest: type,
+    endpoint: []const u8,
+    body: TRequest,
+    headers: []const http.Header,
+) !*Response {
+    return self.requestWithBody(TRequest, .POST, endpoint, body, headers);
+}
+
+fn put(
+    self: *Self,
+    comptime TRequest: type,
+    endpoint: []const u8,
+    body: TRequest,
+    headers: []const http.Header,
+) !*Response {
+    return self.requestWithBody(TRequest, .PUT, endpoint, body, headers);
 }
 
 fn get(
@@ -157,4 +178,16 @@ pub fn getRecommendation(self: *Self) !*Response {
     return self.get("album/recommendation", &.{
         .{ .name = "Authorization", .value = self.auth_token.? },
     });
+}
+
+pub fn rateRecommendation(self: *Self, album_id: []const u8, rating: u8) !*Response {
+    if (self.auth_token == null)
+        return error.NotLoggedIn;
+
+    return self.put(
+        struct { albumId: []const u8, rating: u8 },
+        "album/rating",
+        .{ .albumId = album_id, .rating = rating },
+        &.{.{ .name = "Authorization", .value = self.auth_token.? }},
+    );
 }
