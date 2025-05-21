@@ -2,10 +2,11 @@ const std = @import("std");
 const http = std.http;
 const json = std.json;
 const mem = std.mem;
-const Config = @import("Config.zig");
-
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
+
+const Config = @import("Config.zig");
+const jwt = @import("jwt.zig");
 
 const Self = @This();
 
@@ -157,9 +158,18 @@ pub fn register(self: *Self, username: []const u8, password: []const u8) !*Respo
     return self.post(Auth.Request, "auth/register", .{ .username = username, .password = password }, &.{});
 }
 
-pub fn addArtist(self: *Self, artist_name: []const u8) !*Response {
+const AuthError = error{ TokenNotFound, TokenExpired };
+
+fn checkToken(self: *const Self) !void {
     if (self.auth_token == null)
-        return error.NotLoggedIn;
+        return AuthError.TokenNotFound;
+
+    if (try jwt.isExpired(self.allocator, self.auth_token.?))
+        return AuthError.TokenExpired;
+}
+
+pub fn addArtist(self: *Self, artist_name: []const u8) !*Response {
+    try self.checkToken();
 
     return self.post(
         struct { artistName: []const u8 },
@@ -172,8 +182,7 @@ pub fn addArtist(self: *Self, artist_name: []const u8) !*Response {
 }
 
 pub fn getRecommendation(self: *Self) !*Response {
-    if (self.auth_token == null)
-        return error.NotLoggedIn;
+    try self.checkToken();
 
     return self.get("album/recommendation", &.{
         .{ .name = "Authorization", .value = self.auth_token.? },
@@ -181,8 +190,7 @@ pub fn getRecommendation(self: *Self) !*Response {
 }
 
 pub fn rateRecommendation(self: *Self, album_id: []const u8, rating: u8) !*Response {
-    if (self.auth_token == null)
-        return error.NotLoggedIn;
+    try self.checkToken();
 
     return self.put(
         struct { albumId: []const u8, rating: u8 },

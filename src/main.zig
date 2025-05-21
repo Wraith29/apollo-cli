@@ -1,6 +1,5 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const EnvMap = std.process.EnvMap;
 
 const App = @import("App.zig");
 const files = @import("files.zig");

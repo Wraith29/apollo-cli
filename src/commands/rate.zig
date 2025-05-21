@@ -24,6 +24,10 @@ pub fn latest(
     const response = try client.rateRecommendation(config.latest_recommendation.?, rating);
     defer response.destroy(allocator);
 
+    const body = try response.read();
+    defer allocator.free(body);
+    std.log.info("Body: {s}", .{body});
+
     if (response.status.class() != .success)
         return error.RatingFailed;
 }
