@@ -203,12 +203,14 @@ fn tabulate(allocator: Allocator, comptime T: type, values: []T, comptime ignore
     std.log.info("Table Header:\n{s}", .{table.items});
 }
 
+// While this struct may violate naming conventions for struct fields
+// I think it's nicer to have a table with PascalCase headers
+// And it's easier to make the field names be PascalCase rather than adding more comptime reflection stuff
+// to evaluate a snake_case name into PascalCase.
+// Maybe something I'll change in the future, but let's be real. I won't.
 const Artist = struct {
-    UserId: []const u8,
-    ArtistId: []const u8,
+    ArtistName: []const u8,
     Rating: u8,
-    CreatedAt: []const u8,
-    UpdatedAt: []const u8,
 };
 
 pub fn artists(allocator: Allocator, client: *Client) !void {
@@ -222,6 +224,6 @@ pub fn artists(allocator: Allocator, client: *Client) !void {
         allocator,
         Artist,
         all_artists.value,
-        &.{ "UserId", "CreatedAt", "UpdatedAt" },
+        &.{},
     );
 }
