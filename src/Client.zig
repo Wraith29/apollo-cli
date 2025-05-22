@@ -199,3 +199,12 @@ pub fn rateRecommendation(self: *Self, album_id: []const u8, rating: u8) !*Respo
         &.{.{ .name = "Authorization", .value = self.auth_token.? }},
     );
 }
+
+pub fn listArtists(self: *Self) !*Response {
+    try self.checkToken();
+
+    return self.get(
+        "artist",
+        &.{.{ .name = "Authorization", .value = self.auth_token.? }},
+    );
+}

@@ -11,7 +11,6 @@ pub fn latest(
     args: *Args,
     client: *Client,
     config: *Config,
-    console: *Console,
 ) !void {
     if (config.latest_recommendation == null)
         return error.NoLatestRecommendation;
@@ -19,14 +18,11 @@ pub fn latest(
     const raw_rating = args.at(2) orelse return error.MissingArgument;
     const rating = std.fmt.parseInt(u8, raw_rating, 10) catch return error.InvalidRating;
 
-    try console.writeFmt("Rating: {}\n", .{rating});
-
     const response = try client.rateRecommendation(config.latest_recommendation.?, rating);
     defer response.destroy(allocator);
 
     const body = try response.read();
     defer allocator.free(body);
-    std.log.info("Body: {s}", .{body});
 
     if (response.status.class() != .success)
         return error.RatingFailed;

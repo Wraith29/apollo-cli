@@ -7,6 +7,7 @@ const artist = @import("commands/artist.zig");
 const auth = @import("commands/auth.zig");
 const recommendation = @import("commands/recommendation.zig");
 const rate = @import("commands/rate.zig");
+const list = @import("commands/list.zig");
 const Config = @import("Config.zig");
 const Console = @import("Console.zig");
 
@@ -62,7 +63,10 @@ pub fn run(self: *Self) !void {
     else if (try self.args.matches(1, "recommend", &.{"rec"}))
         return recommendation.get(self.allocator, &self.client, &self.config, &self.console)
     else if (try self.args.matches(1, "rate", &.{}))
-        return rate.latest(self.allocator, &self.args, &self.client, &self.config, &self.console);
+        return rate.latest(self.allocator, &self.args, &self.client, &self.config)
+    else if (try self.args.matches(1, "list", &.{}))
+        if (try self.args.matches(2, "artists", &.{"artist"}))
+            return list.artists(self.allocator, &self.client);
 }
 
 fn help(self: *Self) !void {
@@ -86,6 +90,10 @@ fn help(self: *Self) !void {
         \\    Recommend an album from your library to listen to
         \\    [-a --all] Include albums you've already been recommended
         \\    [...genres] Filter down to albums that have the given tags (max 3)
+        \\
+        \\  rate [1 .. 5]
+        \\    Rate your most recent recommendation
+        \\    Ratings go from 1 (Very Negative) to 5 (Very Positive)
         \\
     );
 }
