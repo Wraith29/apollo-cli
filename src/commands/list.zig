@@ -227,3 +227,24 @@ pub fn artists(allocator: Allocator, client: *Client) !void {
         &.{},
     );
 }
+
+const Album = struct {
+    AlbumName: []const u8,
+    ArtistName: []const u8,
+    Rating: u8,
+};
+
+pub fn albums(allocator: Allocator, client: *Client) !void {
+    const response = try client.listAlbums();
+    defer response.destroy(allocator);
+
+    const all_albums = try response.into([]Album, allocator);
+    defer all_albums.deinit();
+
+    try tabulate(
+        allocator,
+        Album,
+        all_albums.value,
+        &.{},
+    );
+}

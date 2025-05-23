@@ -208,3 +208,12 @@ pub fn listArtists(self: *Self) !*Response {
         &.{.{ .name = "Authorization", .value = self.auth_token.? }},
     );
 }
+
+pub fn listAlbums(self: *Self) !*Response {
+    try self.checkToken();
+
+    return self.get(
+        "album",
+        &.{.{ .name = "Authorization", .value = self.auth_token.? }},
+    );
+}

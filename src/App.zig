@@ -66,7 +66,9 @@ pub fn run(self: *Self) !void {
         return rate.latest(self.allocator, &self.args, &self.client, &self.config)
     else if (try self.args.matches(1, "list", &.{}))
         if (try self.args.matches(2, "artists", &.{"artist"}))
-            return list.artists(self.allocator, &self.client);
+            return list.artists(self.allocator, &self.client)
+        else if (try self.args.matches(2, "albums", &.{"album"}))
+            return list.albums(self.allocator, &self.client);
 }
 
 fn help(self: *Self) !void {
