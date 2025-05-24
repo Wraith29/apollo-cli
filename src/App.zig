@@ -66,9 +66,13 @@ pub fn run(self: *Self) !void {
         return rate.latest(self.allocator, &self.args, &self.client, &self.config)
     else if (try self.args.matches(1, "list", &.{}))
         if (try self.args.matches(2, "artists", &.{"artist"}))
-            return list.artists(self.allocator, &self.client)
+            return list.artists(self.allocator, &self.client, &self.console)
         else if (try self.args.matches(2, "albums", &.{"album"}))
-            return list.albums(self.allocator, &self.client);
+            return list.albums(self.allocator, &self.client, &self.console)
+        else if (try self.args.matches(2, "recommendations", &.{"rec"}))
+            return list.recommendations(self.allocator, &self.client, &self.console)
+        else
+            return self.help();
 }
 
 fn help(self: *Self) !void {
@@ -96,6 +100,9 @@ fn help(self: *Self) !void {
         \\  rate [1 .. 5]
         \\    Rate your most recent recommendation
         \\    Ratings go from 1 (Very Negative) to 5 (Very Positive)
+        \\
+        \\  list (albums | artists | recommendations)
+        \\    List your artists / albums / recommendations
         \\
     );
 }

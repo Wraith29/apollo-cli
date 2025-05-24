@@ -204,7 +204,7 @@ pub fn listArtists(self: *Self) !*Response {
     try self.checkToken();
 
     return self.get(
-        "artist",
+        "artists",
         &.{.{ .name = "Authorization", .value = self.auth_token.? }},
     );
 }
@@ -213,7 +213,16 @@ pub fn listAlbums(self: *Self) !*Response {
     try self.checkToken();
 
     return self.get(
-        "album",
+        "albums",
+        &.{.{ .name = "Authorization", .value = self.auth_token.? }},
+    );
+}
+
+pub fn listRecommendations(self: *Self) !*Response {
+    try self.checkToken();
+
+    return self.get(
+        "recommendations",
         &.{.{ .name = "Authorization", .value = self.auth_token.? }},
     );
 }
